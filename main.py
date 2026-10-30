@@ -1,62 +1,33 @@
 
-import argparse
-import pandas as pd
+name: Trading Bot Tests
 
-from strategy import generate_signal
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
 
+jobs:
+  test:
+    runs-on: ubuntu-latest
 
-def load_candles(file_path):
-    """Load candle data from a CSV file."""
-    df = pd.read_csv(file_path)
+    steps:
+      - name: Checkout project
+        uses: actions/checkout@v4
 
-    required = ["open", "high", "low", "close"]
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
 
-    if not all(col in df.columns for col in required):
-        raise ValueError(
-            f"{file_path} must contain: {required}"
-        )
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
 
-    return df
+      - name: Run strategy tests
+        run: |
+          python -m unittest test_strategy -v
 
-
-def main():
-    parser = argparse.ArgumentParser(
-        description="Smart Trading Bot - Safe Test Mode"
-    )
-
-    parser.add_argument(
-        "--hourly",
-        required=True,
-        help="Path to 1-hour candle CSV file"
-    )
-
-    parser.add_argument(
-        "--fifteen",
-        required=True,
-        help="Path to 15-minute candle CSV file"
-    )
-
-    args = parser.parse_args()
-
-    hourly_data = load_candles(args.hourly)
-    fifteen_data = load_candles(args.fifteen)
-
-    result = generate_signal(
-        hourly_data,
-        fifteen_data
-    )
-
-    print("\n===== SMART TRADING BOT =====")
-    print("Mode: TEST ONLY")
-    print("Signal:", result["signal"])
-
-    for key, value in result.items():
-        if key != "signal":
-            print(f"{key}: {value}")
-
-    print("=============================")
-
-
-if __name__ == "__main__":
-    main()
-
+      - name: Test OKX market data
+        run: |
+          python -m unittest test_okx_data -v
