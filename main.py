@@ -1,33 +1,39 @@
 
-name: Trading Bot Tests
+from okx_data import get_btc_candles
+from strategy import generate_signal
 
-on:
-  push:
-  pull_request:
-  workflow_dispatch:
 
-jobs:
-  test:
-    runs-on: ubuntu-latest
+def main():
+    print("BTC/USDT - OKX")
+    print("Getting market data...")
 
-    steps:
-      - name: Checkout project
-        uses: actions/checkout@v4
+    try:
+        # دریافت کندل‌های یک‌ساعته
+        df_1h = get_btc_candles("1H")
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
+        # دریافت کندل‌های ۱۵ دقیقه‌ای
+        df_15m = get_btc_candles("15m")
 
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
+        print("1H candles:", len(df_1h))
+        print("15M candles:", len(df_15m))
 
-      - name: Run strategy tests
-        run: |
-          python -m unittest test_strategy -v
+        # تولید سیگنال
+        result = generate_signal(df_1h, df_15m)
 
-      - name: Test OKX market data
-        run: |
-          python -m unittest test_okx_data -v
+        print("\nTrading Signal:")
+        print("Signal:", result["signal"])
+
+        if result["signal"] in ("BUY", "SELL"):
+            print("Entry:", result["entry"])
+            print("Stop Loss:", result["stop_loss"])
+            print("Take Profit:", result["take_profit"])
+            print("Risk/Reward:", result["risk_reward"])
+        else:
+            print("Reason:", result.get("reason", "No signal"))
+
+    except Exception as error:
+        print("Error:", error)
+
+
+if __name__ == "__main__":
+    main()
